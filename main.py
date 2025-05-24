@@ -1,13 +1,9 @@
 import os
 import json
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from discord import app_commands
 from dotenv import load_dotenv
-from keep_alive import keep_alive
-
-# keep_alive を呼び出して Flask サーバーを起動
-keep_alive()
 
 load_dotenv()
 
@@ -42,11 +38,23 @@ async def on_ready():
     print(f"✅ Logged in as {bot.user}")
     await bot.change_presence(status=discord.Status.invisible)
     await tree.sync(guild=discord.Object(id=TARGET_GUILD_ID))
+    
+    # 定期更新タスクを開始
+    if not continuous_update.is_running():
+        continuous_update.start()
+
+
+@tasks.loop(seconds=5)  # 5分ごとに更新（この間隔は調整可能）
+async def continuous_update():
+    guild = bot.get_guild(TARGET_GUILD_ID)
+    if guild:
+        await update_counts(guild)
 
 
 @tree.command(name="setcategory", description="カテゴリを指定して自動的に人数表示チャンネルを作成", guild=discord.Object(id=TARGET_GUILD_ID))
 @app_commands.describe(category="チャンネルを作成するカテゴリ")
 async def setcategory(interaction: discord.Interaction, category: discord.CategoryChannel):
+    # ... existing code ...
     if interaction.guild.id != TARGET_GUILD_ID:
         await interaction.response.send_message("このサーバーでは使えません。", ephemeral=True)
         return
@@ -86,6 +94,7 @@ async def on_member_remove(member):
 
 
 async def update_counts(guild):
+    # ... existing code ...
     if guild.id != TARGET_GUILD_ID:
         return
 
